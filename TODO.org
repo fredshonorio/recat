@@ -1,0 +1,18 @@
+* Recat
+** DONE Command thread - spawns process and reads stdout
+   CLOSED: [2017-04-15 Sat 13:42]
+** DONE Consumer thread - prints
+   CLOSED: [2017-04-15 Sat 13:42]
+** TODO spawner - ensures N threads are up
+
+*** DONE basics
+    CLOSED: [2017-04-15 Sat 14:24]
+while true:
+  spawned = spawn MAX
+  current += spawned
+  recv
+  current --
+
+*** TODO timeout
+** TODO Config
+** TODO argparse
