@@ -24,8 +24,8 @@ fn parse_opts(timeout: &mut u64, cmds: &mut Vec<String>, n_concurrent: &mut Opti
     parser
         .refer(n_concurrent)
         .add_option(&["-n"],
-        StoreOption,
-        "The maximum number of concurrent commands. By default it is the number of defined commands (-c switches).");
+                    StoreOption,
+                    "The maximum number of concurrent commands. By default it is the number of defined commands (-c switches).");
     parser.parse_args_or_exit();
 }
 
