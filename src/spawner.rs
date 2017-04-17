@@ -1,23 +1,31 @@
 use std::sync::mpsc::{Sender, channel};
 use std::thread;
+use std::time::Duration;
 use process::worker;
 
-pub fn spawner(max_threads: i32, tx: &Sender<String>) -> () {
+pub fn spawner(max_threads: i16, tx: &Sender<String>, timeout: Duration, cmds: Vec<String>) {
     let (close_tx, close_rx) = channel();
-    let mut current = 0;
+    let mut current: i16 = 0;
+    let mut commands = cmds.iter().cycle();
 
     loop {
-        spawn_workers(max_threads - current, tx, &close_tx);
-        current = max_threads;
+        // spawn all workers
+        while current < max_threads {
+            let next: &String = commands.next().unwrap();
+            spawn_worker(next, tx, &close_tx);
+            current += 1;
+        }
+
+        // wait for a worker to stop
         close_rx.recv().unwrap();
         current -= 1;
+        thread::sleep(timeout);
     }
 }
 
-fn spawn_workers(n_threads: i32, tx: &Sender<String>, close: &Sender<()>) -> () {
-    for _ in 0..n_threads {
-        let thread_tx = tx.clone();
-        let close_tx = close.clone();
-        thread::spawn(move || worker(&thread_tx, &close_tx));
-    }
+fn spawn_worker(cmd: &String, tx: &Sender<String>, close: &Sender<()>) {
+    let thread_tx = tx.clone();
+    let thread_close = close.clone();
+    let thread_cmd = cmd.clone();
+    thread::spawn(move || worker(thread_cmd, &thread_tx, &thread_close));
 }

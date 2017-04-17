@@ -8,34 +8,38 @@ enum ProcResult {
     Err(String),
 }
 
-pub fn worker(tx: &Sender<String>, close: &Sender<()>) -> () {
-    let res = stream_output(&tx);
+// stream all the output of a process and send a close signal when done
+pub fn worker(cmd: String, tx: &Sender<String>, close: &Sender<()>) -> () {
+    let res = stream_output(&tx, cmd);
     let exit = match res {
-        ProcResult::Exited => String::from("exited"),
-        ProcResult::Err(msg) => String::from(format!("exited with error: {}", msg)),
+        ProcResult::Exited => "exited".to_string(),
+        ProcResult::Err(msg) => format!("exited with error: {}", msg).to_string(),
     };
-
     tx.send(exit).unwrap();
     close.send(()).unwrap();
 }
 
-fn stream_output(tx: &Sender<String>) -> ProcResult {
+// send all lines of stdout and return a process result
+fn stream_output(tx: &Sender<String>, cmd: String) -> ProcResult {
 
-    let process = Command::new("/usr/bin/ls").stdin(Stdio::null()).stdout(Stdio::piped()).spawn();
+    let process = Command::new("/usr/bin/bash")
+        .arg("-c")
+        .arg(cmd)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .spawn();
 
     let child = match process {
         Ok(x) => x,
-        Err(msg) => return ProcResult::Err(String::from(msg.description())),
+        Err(msg) => return ProcResult::Err(msg.description().to_string()),
     };
 
-    let buffer = match child.stdout {
+    let out = match child.stdout {
         Some(b) => b,
         None => return ProcResult::Exited,
     };
 
-    let reader = BufReader::new(buffer);
-
-    for line in reader.lines() {
+    for line in BufReader::new(out).lines() {
         match line {
             Ok(l) => tx.send(l).unwrap(),
             Err(_) => {}
